@@ -14,7 +14,10 @@ public class Main {
 
     /**
      * @param args
+     * Juan Jacobo Jaramillo Cortes
+     * Lina Vanessa Arciniegas Ragua
      */
+    
     public static void main(String[] args) throws Exception {
         String webappDirLocation = "src/main/webapp/";
 
