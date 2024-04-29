@@ -100,7 +100,9 @@ public class CompetitorService {
         }
 
         // Eliminar el usuario
+        entityManager.getTransaction().begin();
         entityManager.remove(user);
+        entityManager.getTransaction().commit();
         return Response.status(200).entity("Usuario con ID " + userId + " eliminado exitosamente.").build();
     }
 
@@ -114,8 +116,17 @@ public class CompetitorService {
         return Response.status(200).header("Access-Control-Allow-Origin", "*").entity(us).build();
 
     }
-//********************** V E H I C U L O **************************************************
 
+    @GET
+    @Path("/cazadores")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response getAll() {
+        Query q = entityManager.createQuery("select u from Usuario u order by u.name ASC");
+        List<Usuario> us = q.getResultList();
+        return Response.status(200).header("Access-Control-Allow-Origin", "*").entity(us).build();
+    }
+
+//********************** V E H I C U L O **************************************************
     @POST
     @Path("/addVe")
     @Produces(MediaType.APPLICATION_JSON)
@@ -134,7 +145,7 @@ public class CompetitorService {
             entityManager.persist(car);
             entityManager.getTransaction().commit();
             entityManager.refresh(car);
-            rta.put("usuario_id", car.getId());
+            rta.put("vehiculo_id", car.getId());
         } catch (Throwable t) {
             t.printStackTrace();
             if (entityManager.getTransaction().isActive()) {
@@ -167,7 +178,9 @@ public class CompetitorService {
         }
 
         // Eliminar el usuario
+        entityManager.getTransaction().begin();
         entityManager.remove(car);
+        entityManager.getTransaction().commit();
         return Response.status(200).entity("Usuario con ID " + userId + " eliminado exitosamente.").build();
     }
 
@@ -175,7 +188,7 @@ public class CompetitorService {
     @Path("/getAllVe")
     @Produces(MediaType.APPLICATION_JSON)
     public Response getAllVe() {
-        Query q = entityManager.createQuery("select u from Vehiculos u order by u.surname ASC");
+        Query q = entityManager.createQuery("select u from Vehiculos u order by u.placa ASC");
         List<Vehiculos> competitors = q.getResultList();
         return Response.status(200).header("Access-Control-Allow-Origin", "*").entity(competitors).build();
 
@@ -204,7 +217,7 @@ public class CompetitorService {
             entityManager.persist(ca);
             entityManager.getTransaction().commit();
             entityManager.refresh(ca);
-            rta.put("usuario_id", ca.getId());
+            rta.put("carga_numero", ca.getId());
         } catch (Throwable t) {
             t.printStackTrace();
             if (entityManager.getTransaction().isActive()) {
@@ -223,7 +236,7 @@ public class CompetitorService {
     @Path("/updateCa/{id}")
     @Produces(MediaType.APPLICATION_JSON)
     public Response actualizarCarga(cargaDTO cargas) {
-      
+
         return Response.status(200).entity("Usuario con ID eliminado exitosamente.").build();
     }
 
@@ -236,7 +249,9 @@ public class CompetitorService {
             return Response.status(Response.Status.NOT_FOUND).entity("Usuario con ID " + userId + " no encontrado.").build();
         }
 
+        entityManager.getTransaction().begin();
         entityManager.remove(carga);
+        entityManager.getTransaction().commit();
         return Response.status(200).entity("Usuario con ID " + userId + " eliminado exitosamente.").build();
 
     }
@@ -244,8 +259,9 @@ public class CompetitorService {
     @GET
     @Path("/getCa/{id}")
     @Produces(MediaType.APPLICATION_JSON)
-    public Response getCarga() {
-        Query q = entityManager.createQuery("select u from Cargas u order by u.surname ASC");
+    public Response getCarga(@PathParam("id") Long userId) {
+        Query q = entityManager.createQuery("select u from Cargas u WHERE u.id =:id");
+        q.setParameter("id", userId);
         List<Cargas> carga = q.getResultList();
         return Response.status(200).header("Access-Control-Allow-Origin", "*").entity(carga).build();
 
