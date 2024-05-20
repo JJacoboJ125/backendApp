@@ -14,10 +14,14 @@ import com.example.models.cargaDTO;
 import com.example.models.usuarioDTO;
 import com.example.models.usuarioLOGIN;
 import com.example.SingletonLogin;
+import com.example.models.Conductor;
+import com.example.models.ConductorDTO;
 import com.example.models.Solicitud;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Properties;
 import javax.annotation.PostConstruct;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
@@ -33,6 +37,9 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import org.codehaus.jettison.json.JSONObject;
+import javax.mail.*;
+import javax.mail.internet.*;
+import javax.mail.Session;
 
 /**
  *
@@ -146,6 +153,14 @@ public class CompetitorService {
         car.setModelo(carrito.getMarca());
         car.setTipoCarroceria(carrito.getTipoCarroceria());
         car.setCapacidadCar(carrito.getCapacidadCar());
+
+        long id = carrito.getIdDueno();
+        Query q = entityManager.createQuery("select u from Usuario u WHERE u.id = :id");
+        q.setParameter("id", id);
+        Usuario usr = (Usuario) q.getSingleResult();
+        car.setDueno(usr);
+
+        car.setConductor(null);
 
         try {
             entityManager.getTransaction().begin();
@@ -305,10 +320,30 @@ public class CompetitorService {
                         .header("Access-Control-Allow-Origin", "*")
                         .entity(usuarios.get(0))
                         .build();
-            } else {
+            } else if (usuarios.isEmpty()) {
+                q = entityManager.createQuery("SELECT c FROM Conductor c WHERE c.correo = :direccion AND c.pass = :pass");
+                q.setParameter("direccion", direccion);
+                q.setParameter("pass", pass);
+
+                List<Usuario> usuarioC = q.getResultList();
+                if (!usuarioC.isEmpty()) {
+                    for (Usuario u : usuarios) {
+                        SingletonLogin.getInstance().setUid(String.valueOf(u.getId()));
+                        SingletonLogin.getInstance().setTipoUs(2);
+                    }
+                    return Response.status(200)
+                            .header("Access-Control-Allow-Origin", "*")
+                            .entity(usuarios.get(0))
+                            .build();
+                } else {
+                    return Response.status(401)
+                            .header("NotAuthorizedException", "*").entity("NotAuthorizedException").build();
+                }
+            }else{
                 return Response.status(401)
-                        .header("NotAuthorizedException", "*").entity("NotAuthorizedException").build();
+                            .header("NotAuthorizedException", "*").entity("NotAuthorizedException").build();
             }
+                    
         } catch (Exception e) {
             return Response.status(500)
                     .entity("Error al procesar la solicitud: " + e.getMessage())
@@ -326,6 +361,7 @@ public class CompetitorService {
             if (!IdDC.isEmpty()) {
                 IdDC = "";
                 SingletonLogin.getInstance().setUid(null);
+                SingletonLogin.getInstance().setTipoUs(null);
                 return Response.status(200)
                         .header("Access-Control-Allow-Origin", "*")
                         .entity("se ha cerrado sesion con exito")
@@ -490,4 +526,161 @@ public class CompetitorService {
         return Response.status(200).header("Access-Control-Allow-Origin", "*").entity(cargas).build();
     }
 
+//private void enviarNotificacion(Usuario usr, String mensaje) {
+//    // Configuración del servidor de correo electrónico y credenciales de autenticación
+//    final String correoRemitente = "convergentesgrupocuatro@gmail.com";
+//    final String contraseñaRemitente = "JeissonA2001.";
+//    
+//    // Propiedades para la sesión de correo
+//    Properties props = new Properties();
+//    props.put("mail.smtp.auth", "true");
+//    props.put("mail.smtp.starttls.enable", "true");
+//    props.put("mail.smtp.host", "smtp-relay.gmail.com");
+//    props.put("mail.smtp.port", "587");
+//    
+//    Authenticator authenticator = new Authenticator() {
+//        protected PasswordAuthentication getPasswordAuthentication() {
+//            return new PasswordAuthentication(correoRemitente, contraseñaRemitente);
+//        }
+//    };
+//    Session session = Session.getInstance(props, authenticator);
+//    
+//    try {
+//        Message message = new MimeMessage(session);
+//        message.setFrom(new InternetAddress(correoRemitente));
+//        
+//        String correoDestinatario = usr.getCorreo();
+//        message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(correoDestinatario));
+//        
+//        message.setSubject("Notificación de solicitud aceptada");
+//        message.setText(mensaje);
+//        
+//     
+//        Transport.send(message);
+//        System.out.println("Correo electrónico enviado correctamente a " + correoDestinatario);
+//    } catch (MessagingException e) {
+//        e.printStackTrace();
+//        System.err.println("Error al enviar correo electrónico");
+//    }
+//}
+//********************** V E R  S O L I C I T U D E S  A C E P **************************************************
+    @GET
+    @Path("/verSolicitudesA")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response solDueV() {
+        if (SingletonLogin.getInstance().getUid() != null && SingletonLogin.getInstance().getTipoUs() == 1) {
+            long usrId = Long.valueOf(SingletonLogin.getInstance().getUid());
+            Query q = entityManager.createQuery("SELECT s FROM Solicitud s WHERE s.usuario.id = :usrId AND s.estado = :estado");
+            q.setParameter("usrId", usrId);
+            q.setParameter("estado", "A");
+
+            List<Solicitud> solicitud = q.getResultList();
+
+            return Response.status(200).header("Access-Control-Allow-Origin", "*").entity(solicitud).build();
+
+        } else {
+            return Response.status(401).header("NotAuthorizedException", "*").entity("NotAuthorizedException").build();
+        }
+
+    }
+
+    @GET
+    @Path("/rutaSolicitudesA/{id}")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response crearRuta(@PathParam("id") Long solId) {
+        if (SingletonLogin.getInstance().getUid() != null && SingletonLogin.getInstance().getTipoUs() == 1) {
+            Query q = entityManager.createQuery("SELECT s FROM Solicitud s WHERE s.id = :solId");
+            q.setParameter("solId", solId);
+            Solicitud solicitud = (Solicitud) q.getSingleResult();
+            String apiKey = "AIzaSyDsseri8lGQRqrj1-Jx3i3Q3b1lTxUy_I0";
+            Cargas carga = solicitud.getCarga();
+            String origen = carga.getOrigenCiudad();
+            String destino = carga.getDestinoCiudad();
+
+            return Response.status(200).header("Access-Control-Allow-Origin", "*").entity(solicitud).build();
+
+        } else {
+            return Response.status(401).header("NotAuthorizedException", "*").entity("NotAuthorizedException").build();
+        }
+
+    }
+
+    @POST
+    @Path("/registerConductor")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response createConductor(ConductorDTO cond) {
+        JSONObject rta = new JSONObject();
+        Conductor Cond = new Conductor();
+        Cond.setCorreo(cond.getCorreo());
+        Cond.setNombre(cond.getNombre());
+        Cond.setPass(cond.getPass());
+        Cond.setTelefono(cond.getTelefono());
+        long idV = cond.getIdvehiculo();
+        Query q = entityManager.createQuery("SELECT v FROM Vehiculos v WHERE v.id = :id");
+        q.setParameter("id", idV);
+        Vehiculos v = (Vehiculos) q.getSingleResult();
+
+        Cond.setVehiculo(v);
+
+        v.setConductor(Cond);
+
+        try {
+            entityManager.getTransaction().begin();
+            entityManager.persist(Cond);
+            entityManager.merge(v);
+            entityManager.getTransaction().commit();
+            entityManager.refresh(Cond);
+            rta.put("Conductor_id", Cond.getId());
+        } catch (Throwable t) {
+            t.printStackTrace();
+            if (entityManager.getTransaction().isActive()) {
+                entityManager.getTransaction().rollback();
+            }
+            Cond = null;
+        } finally {
+            entityManager.clear();
+            entityManager.close();
+        }
+        return Response.status(200).header("Access-Control-Allow-Origin", "*").entity(rta).build();
+    }
+
+    @GET
+    @Path("/ViajesARealizar")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response VerViajes(ConductorDTO cond) {
+        
+        JSONObject rta = new JSONObject();
+        Conductor Cond = new Conductor();
+        Cond.setCorreo(cond.getCorreo());
+        Cond.setNombre(cond.getNombre());
+        Cond.setPass(cond.getPass());
+        Cond.setTelefono(cond.getTelefono());
+        long idV = cond.getIdvehiculo();
+        Query q = entityManager.createQuery("SELECT v FROM Vehiculos v WHERE v.id = :id");
+        q.setParameter("id", idV);
+        Vehiculos v = (Vehiculos) q.getSingleResult();
+
+        Cond.setVehiculo(v);
+
+        v.setConductor(Cond);
+
+        try {
+            entityManager.getTransaction().begin();
+            entityManager.persist(Cond);
+            entityManager.merge(v);
+            entityManager.getTransaction().commit();
+            entityManager.refresh(Cond);
+            rta.put("Conductor_id", Cond.getId());
+        } catch (Throwable t) {
+            t.printStackTrace();
+            if (entityManager.getTransaction().isActive()) {
+                entityManager.getTransaction().rollback();
+            }
+            Cond = null;
+        } finally {
+            entityManager.clear();
+            entityManager.close();
+        }
+        return Response.status(200).header("Access-Control-Allow-Origin", "*").entity(rta).build();
+    }
 }

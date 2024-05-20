@@ -40,6 +40,10 @@ public class SingletonLogin {
     public void setTipoUs(int tipoUs) {
         this.tipoUs = tipoUs;
     }
+
+    public void setTipoUs(Object object) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
     
     
     

@@ -12,6 +12,9 @@ import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.JoinColumn;
+import javax.persistence.ManyToOne;
+import javax.persistence.OneToOne;
 import javax.persistence.PrePersist;
 import javax.persistence.PreUpdate;
 import javax.persistence.Temporal;
@@ -39,6 +42,14 @@ public class Vehiculos {
     @Column(name = "updated_at")
     @Temporal(TemporalType.DATE)
     private Calendar updatedAt;
+    
+    @ManyToOne
+    @JoinColumn(name = "usuario_id")
+    private Usuario dueno;
+    
+    @OneToOne
+    @JoinColumn(name = "conductor_id")
+    private Conductor conductor;
 
     private String placa;
 
@@ -54,12 +65,13 @@ public class Vehiculos {
     }
     
 
-    public Vehiculos(String placa, String marca, String modelo, String capacidadCar, String tipoCarroceria) {
+    public Vehiculos(String placa, String marca, String modelo, String capacidadCar, String tipoCarroceria, Usuario dueno) {
         this.placa = placa;
         this.marca = marca;
         this.modelo = modelo;
         this.capacidadCar = capacidadCar;
         this.tipoCarroceria = tipoCarroceria;
+        this.dueno = dueno;
     }
 
     @PreUpdate
@@ -70,6 +82,14 @@ public class Vehiculos {
     @PrePersist
     private void creationTimestamp() {
         this.createdAt = this.updatedAt = Calendar.getInstance();
+    }
+
+    public Usuario getDueno() {
+        return dueno;
+    }
+
+    public void setDueno(Usuario dueno) {
+        this.dueno = dueno;
     }
 
     public Long getId() {
@@ -119,5 +139,15 @@ public class Vehiculos {
     public void setTipoCarroceria(String tipoCarroceria) {
         this.tipoCarroceria = tipoCarroceria;
     }
+
+    public Conductor getConductor() {
+        return conductor;
+    }
+
+    public void setConductor(Conductor conductor) {
+        this.conductor = conductor;
+    }
+    
+    
 
 }

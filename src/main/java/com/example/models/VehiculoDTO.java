@@ -20,6 +20,10 @@ public class VehiculoDTO {
     private String capacidadCar;
 
     private String tipoCarroceria;
+    
+    private long IdDueno;
+    
+    private long IdConductor;
 
     public VehiculoDTO() {
         
@@ -64,6 +68,23 @@ public class VehiculoDTO {
     public void setTipoCarroceria(String tipoCarroceria) {
         this.tipoCarroceria = tipoCarroceria;
     }
+
+    public Long getIdDueno() {
+        return IdDueno;
+    }
+
+    public void setIdDueno(Long IdDueno) {
+        this.IdDueno = IdDueno;
+    }
+
+    public long getIdConductor() {
+        return IdConductor;
+    }
+
+    public void setIdConductor(long IdConductor) {
+        this.IdConductor = IdConductor;
+    }
+    
     
     
 }
