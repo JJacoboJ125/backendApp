@@ -22,6 +22,8 @@ public class usuarioDTO {
 
     private String direccionTrabajo;
     
+    private String pass;
+    
     private int tipoUsuario;
     
     
@@ -76,6 +78,16 @@ public class usuarioDTO {
     public void setTipoUsuario(int tipoUsuario) {
         this.tipoUsuario = tipoUsuario;
     }
+
+    public String getPass() {
+        return pass;
+    }
+
+    public void setPass(String pass) {
+        this.pass = pass;
+    }
+    
+    
 
     
     

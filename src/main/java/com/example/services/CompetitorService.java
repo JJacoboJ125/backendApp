@@ -12,7 +12,11 @@ import com.example.models.VehiculoDTO;
 import com.example.models.Vehiculos;
 import com.example.models.cargaDTO;
 import com.example.models.usuarioDTO;
+import com.example.models.usuarioLOGIN;
+import com.example.SingletonLogin;
+import com.example.models.Solicitud;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import javax.annotation.PostConstruct;
 import javax.persistence.EntityManager;
@@ -38,6 +42,7 @@ import org.codehaus.jettison.json.JSONObject;
 @Produces(MediaType.APPLICATION_JSON)
 public class CompetitorService {
 
+    String IdDC;
     @PersistenceContext(unitName = "CompetitorsPU")
     EntityManager entityManager;
 
@@ -63,6 +68,8 @@ public class CompetitorService {
         us.setTelefono(usr.getTelefono());
         us.setDireccion(usr.getDireccion());
         us.setDireccionTrabajo(usr.getDireccionTrabajo());
+        us.setPass(usr.getPass());
+        us.setTipoUsuario(usr.getTipoUsuario());
         try {
             entityManager.getTransaction().begin();
             entityManager.persist(us);
@@ -118,7 +125,7 @@ public class CompetitorService {
     }
 
     @GET
-    @Path("/cazadores")
+    @Path("/getAllUsr")
     @Produces(MediaType.APPLICATION_JSON)
     public Response getAll() {
         Query q = entityManager.createQuery("select u from Usuario u order by u.name ASC");
@@ -199,37 +206,44 @@ public class CompetitorService {
     @Path("/registerCa")
     @Produces(MediaType.APPLICATION_JSON)
     public Response createOrdenCarga(cargaDTO cargas) {
-        JSONObject rta = new JSONObject();
-        Cargas ca = new Cargas();
+        if (SingletonLogin.getInstance().getUid() != null && SingletonLogin.getInstance().getTipoUs() == 0) {
+            JSONObject rta = new JSONObject();
+            Cargas ca = new Cargas();
+            ca.setFecha(cargas.getFecha());
+            ca.setUsuarioCarga(SingletonLogin.getInstance().getUid());
+            ca.setOrigenCiudad(cargas.getOrigenCiudad());
+            ca.setDestinoCiudad(cargas.getDestinoCiudad());
+            ca.setAlto(cargas.getAlto());
+            ca.setLargo(cargas.getLargo());
+            ca.setAncho(cargas.getAncho());
+            ca.setPeso(cargas.getPeso());
+            ca.setValorSeguro(cargas.getValorSeguro());
+            ca.setActiva(true);
+            ca.setAceptada(false);
 
-        ca.setFecha(cargas.getFecha());
-        ca.setUsuarioCarga(cargas.getUsuarioCarga());
-        ca.setOrigenCiudad(cargas.getOrigenCiudad());
-        ca.setDestinoCiudad(cargas.getDestinoCiudad());
-        ca.setAlto(cargas.getAlto());
-        ca.setLargo(cargas.getLargo());
-        ca.setAncho(cargas.getAncho());
-        ca.setPeso(cargas.getPeso());
-        ca.setValorSeguro(cargas.getValorSeguro());
-
-        try {
-            entityManager.getTransaction().begin();
-            entityManager.persist(ca);
-            entityManager.getTransaction().commit();
-            entityManager.refresh(ca);
-            rta.put("carga_numero", ca.getId());
-        } catch (Throwable t) {
-            t.printStackTrace();
-            if (entityManager.getTransaction().isActive()) {
-                entityManager.getTransaction().rollback();
+            try {
+                entityManager.getTransaction().begin();
+                entityManager.persist(ca);
+                entityManager.getTransaction().commit();
+                entityManager.refresh(ca);
+                rta.put("carga_numero", ca.getId());
+            } catch (Throwable t) {
+                t.printStackTrace();
+                if (entityManager.getTransaction().isActive()) {
+                    entityManager.getTransaction().rollback();
+                }
+                ca = null;
+            } finally {
+                entityManager.clear();
+                entityManager.close();
             }
-            ca = null;
-        } finally {
-            entityManager.clear();
-            entityManager.close();
-        }
-        return Response.status(200).header("Access-Control-Allow-Origin", "*").entity(rta).build();
+            return Response.status(200).header("Access-Control-Allow-Origin", "*").entity(rta).build();
 
+        } else {
+            return Response.status(401)
+                    .header("NotAuthorizedException", "*").entity("NotAuthorizedException").build();
+
+        }
     }
 
     @PUT
@@ -266,4 +280,214 @@ public class CompetitorService {
         return Response.status(200).header("Access-Control-Allow-Origin", "*").entity(carga).build();
 
     }
+//********************** I N I C I A R  S E S I Ó N **************************************************
+
+    @POST
+    @Path("/login")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response login(usuarioLOGIN login) {
+        try {
+            String direccion = login.getDireccion();
+            String pass = login.getPass();
+
+            Query q = entityManager.createQuery("SELECT c FROM Usuario c WHERE c.correo = :direccion AND c.pass = :pass");
+            q.setParameter("direccion", direccion);
+            q.setParameter("pass", pass);
+
+            List<Usuario> usuarios = q.getResultList();
+
+            if (!usuarios.isEmpty()) {
+                for (Usuario u : usuarios) {
+                    SingletonLogin.getInstance().setUid(String.valueOf(u.getId()));
+                    SingletonLogin.getInstance().setTipoUs(u.getTipoUsuario());
+                }
+                return Response.status(200)
+                        .header("Access-Control-Allow-Origin", "*")
+                        .entity(usuarios.get(0))
+                        .build();
+            } else {
+                return Response.status(401)
+                        .header("NotAuthorizedException", "*").entity("NotAuthorizedException").build();
+            }
+        } catch (Exception e) {
+            return Response.status(500)
+                    .entity("Error al procesar la solicitud: " + e.getMessage())
+                    .build();
+        }
+
+    }
+//********************** C E R R A R  S E S I Ó N **************************************************
+
+    @POST
+    @Path("/exit")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response exit(usuarioLOGIN login) {
+        try {
+            if (!IdDC.isEmpty()) {
+                IdDC = "";
+                SingletonLogin.getInstance().setUid(null);
+                return Response.status(200)
+                        .header("Access-Control-Allow-Origin", "*")
+                        .entity("se ha cerrado sesion con exito")
+                        .build();
+            } else {
+                return Response.status(401).header("NotAuthorizedException", "*").entity("NotAuthorizedException").build();
+            }
+        } catch (Exception e) {
+            return Response.status(500)
+                    .entity("Error al procesar la solicitud: " + e.getMessage())
+                    .build();
+        }
+    }
+
+//********************** C O N S U L T A  Y  A P L I C A C I O N **************************************************
+    @GET
+    @Path("/getAllCarga")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response obtenerCarga() {
+        Query q = entityManager.createQuery("select u from Cargas u WHERE u.activa = true");
+        List<Cargas> carga = q.getResultList();
+
+        return Response.status(200).header("Access-Control-Allow-Origin", "*").entity(carga).build();
+
+    }
+
+    @POST
+    @Path("/AplicarCarga/{id}")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response aplicarCarga(@PathParam("id") Long CargaId) {
+        if (SingletonLogin.getInstance().getTipoUs() == 1) {
+            Query q = entityManager.createQuery("select u from Cargas u WHERE u.id =:id");
+            q.setParameter("id", CargaId);
+            Cargas CargaA = (Cargas) q.getSingleResult();
+
+            long id = Long.parseLong(SingletonLogin.getInstance().getUid());
+            Query qu = entityManager.createQuery("SELECT c FROM Usuario c WHERE c.id = :id");
+            qu.setParameter("id", id);
+            Usuario usr = (Usuario) qu.getSingleResult();
+
+            JSONObject rta = new JSONObject();
+            Solicitud solicitud = new Solicitud();
+            solicitud.setUsuario(usr);
+            solicitud.setCarga(CargaA);
+            solicitud.setEstado("P");
+
+            try {
+                entityManager.getTransaction().begin();
+                entityManager.persist(solicitud);
+                entityManager.getTransaction().commit();
+                entityManager.refresh(solicitud);
+                rta.put("solicitud creada", solicitud.getId());
+            } catch (Throwable t) {
+                t.printStackTrace();
+                if (entityManager.getTransaction().isActive()) {
+                    entityManager.getTransaction().rollback();
+                }
+                solicitud = null;
+            } finally {
+                entityManager.clear();
+                entityManager.close();
+            }
+            return Response.status(200).header("Access-Control-Allow-Origin", "*").entity(CargaA).build();
+        } else {
+            return Response.status(401).header("NotAuthorizedException", "*").entity("NotAuthorizedException").build();
+        }
+    }
+
+//********************** V E R  S O L I C I T U D E S  Y  A C E P T A R L A S **************************************************
+    @GET
+    @Path("/verSolicitudes")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response verSolicitudes() {
+        if (SingletonLogin.getInstance().getUid() != null && SingletonLogin.getInstance().getTipoUs() == 0) {
+            String usrId = SingletonLogin.getInstance().getUid();
+            Query q = entityManager.createQuery("SELECT s FROM Solicitud s WHERE s.carga.idUsCarga = :usrId");
+            q.setParameter("usrId", usrId);
+
+            List<Solicitud> solicitud = q.getResultList();
+
+            return Response.status(200).header("Access-Control-Allow-Origin", "*").entity(solicitud).build();
+
+        } else {
+            return Response.status(401).header("NotAuthorizedException", "*").entity("NotAuthorizedException").build();
+        }
+
+    }
+
+    @PUT
+    @Path("/aceptarCarga/{id}")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response aceptarSolicitud(@PathParam("id") Long solId) {
+        //SingletonLogin.getInstance().getTipoUs() == 0 && SingletonLogin.getInstance().getUid() != null
+        if (SingletonLogin.getInstance().getTipoUs() == 0 && SingletonLogin.getInstance().getUid() != null) {
+            Query q = entityManager.createQuery("SELECT s FROM Solicitud s WHERE s.id = :id");
+            q.setParameter("id", solId);
+            Solicitud solicitud = (Solicitud) q.getSingleResult();
+            if (solicitud == null) {
+                return Response.status(404).header("Error", "Solicitud no encontrada").build();
+            }
+
+            JSONObject rta = new JSONObject();
+            solicitud.setEstado("A");
+
+            Cargas carga = solicitud.getCarga();
+            Query query = entityManager.createQuery("SELECT s FROM Solicitud s WHERE s.carga = :carga");
+            query.setParameter("carga", carga);
+            List<Solicitud> solicitudes = query.getResultList();
+
+            try {
+                entityManager.getTransaction().begin();
+                entityManager.merge(solicitud);
+                for (Solicitud s : solicitudes) {
+                    if (!s.equals(solicitud)) {
+                        s.setEstado("R");
+                        entityManager.merge(s);
+                    }
+                }
+                entityManager.getTransaction().commit();
+                entityManager.refresh(solicitud);
+                rta.put("solicitud creada", solicitud.getId());
+            } catch (Throwable t) {
+                t.printStackTrace();
+                if (entityManager.getTransaction().isActive()) {
+                    entityManager.getTransaction().rollback();
+                }
+                solicitud = null;
+            } finally {
+                entityManager.clear();
+                entityManager.close();
+            }
+            return Response.status(200).header("Access-Control-Allow-Origin", "*").entity(solicitud).build();
+        } else {
+            return Response.status(401).header("NotAuthorizedException", "*").entity("NotAuthorizedException").build();
+        }
+    }
+
+    @PUT
+    @Path("/cancela/{id}")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response prueba(@PathParam("id") Long cargaId) {
+        Query q = entityManager.createQuery("SELECT c FROM Carga c WHERE c.id = :id");
+        q.setParameter("id", cargaId);
+        List<Cargas> cargas = q.getResultList();
+        try {
+            entityManager.getTransaction().commit();
+            entityManager.getTransaction().begin();
+            for (Cargas c : cargas) {
+                c.setActiva(false);
+                entityManager.merge(c);
+            }
+
+        } catch (Throwable t) {
+            t.printStackTrace();
+            if (entityManager.getTransaction().isActive()) {
+                entityManager.getTransaction().rollback();
+            }
+        } finally {
+            entityManager.clear();
+            entityManager.close();
+        }
+        return Response.status(200).header("Access-Control-Allow-Origin", "*").entity(cargas).build();
+    }
+
 }

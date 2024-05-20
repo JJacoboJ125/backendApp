@@ -51,18 +51,21 @@ public class Usuario {
     private String direccionTrabajo;
     
     private int tipoUsuario;
+    
+    private String pass;
 
     public Usuario() {
 
     }
 
-    public Usuario(String nameN, String correoN, String telefonoN, String direccionN, String direccionTrabajoN, int tipoUsN) {
+    public Usuario(String nameN, String correoN, String telefonoN, String direccionN, String direccionTrabajoN, int tipoUsN, String contraseña) {
         name = nameN;
         correo = correoN;
         telefono = telefonoN;
         direccion = direccionN;
         direccionTrabajo = direccionTrabajoN;
         tipoUsuario = tipoUsN;
+        pass = contraseña;
         
     }
 
@@ -130,6 +133,14 @@ public class Usuario {
 
     public void setTipoUsuario(int tipoUsuario) {
         this.tipoUsuario = tipoUsuario;
+    }
+
+    public String getPass() {
+        return pass;
+    }
+
+    public void setPass(String pass) {
+        this.pass = pass;
     }
     
     

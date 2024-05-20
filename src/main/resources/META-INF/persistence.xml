@@ -5,6 +5,7 @@
     <class>com.example.models.Usuario</class>
     <class>com.example.models.Vehiculos</class>
     <class>com.example.models.Cargas</class>
+    <class>com.example.models.Solicitud</class>
     <properties>
       <property name="javax.persistence.jdbc.url" value="jdbc:derby://localhost:1527/CompetitorPU"/>
       <property name="javax.persistence.jdbc.user" value="root"/>

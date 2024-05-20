@@ -61,13 +61,17 @@ public class Cargas {
     private String peso;
     
     private String valorSeguro;
+    
+    private boolean activa;
+    
+    private boolean aceptada;
 
     public Cargas() {
     }
     
     
 
-    public Cargas(Long id, String fecha, String usuarioCarga, String origenCiudad, String DestinoCiudad, String alto, String largo, String ancho, String peso, String valorSeguro) {
+    public Cargas(Long id, String fecha, String usuarioCarga, String origenCiudad, String DestinoCiudad, String alto, String largo, String ancho, String peso, String valorSeguro, boolean activa, boolean aceptada) {
         this.id = id;
         this.fecha = fecha;
         this.idUsCarga = usuarioCarga;
@@ -78,6 +82,9 @@ public class Cargas {
         this.ancho = ancho;
         this.peso = peso;
         this.valorSeguro = valorSeguro;
+        this.activa = activa;
+        this.aceptada = aceptada;
+        
     }
     
     @PreUpdate
@@ -169,6 +176,24 @@ public class Cargas {
     public void setValorSeguro(String valorSeguro) {
         this.valorSeguro = valorSeguro;
     }
+
+    public boolean isActiva() {
+        return activa;
+    }
+
+    public void setActiva(boolean activa) {
+        this.activa = activa;
+    }
+
+    public boolean isAceptada() {
+        return aceptada;
+    }
+
+    public void setAceptada(boolean aceptada) {
+        this.aceptada = aceptada;
+    }
+    
+    
     
     
     
