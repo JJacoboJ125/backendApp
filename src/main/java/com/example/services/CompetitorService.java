@@ -389,9 +389,9 @@ public class CompetitorService {
     }
 
     @POST
-    @Path("/AplicarCarga/{id}")
+    @Path("/AplicarCarga/{id}/{idv}")
     @Produces(MediaType.APPLICATION_JSON)
-    public Response aplicarCarga(@PathParam("id") Long CargaId) {
+    public Response aplicarCarga(@PathParam("id") Long CargaId,@PathParam("idv") Long VId) {
         if (SingletonLogin.getInstance().getTipoUs() == 1) {
             Query q = entityManager.createQuery("select u from Cargas u WHERE u.id =:id");
             q.setParameter("id", CargaId);
@@ -402,10 +402,16 @@ public class CompetitorService {
             qu.setParameter("id", id);
             Usuario usr = (Usuario) qu.getSingleResult();
 
+            
+            Query qv= entityManager.createQuery("SELECT v FROM Vehiculos v WHERE v.id = :id");
+            qu.setParameter("id", VId);
+            Vehiculos ve = (Vehiculos) qu.getSingleResult();
+            
             JSONObject rta = new JSONObject();
             Solicitud solicitud = new Solicitud();
             solicitud.setUsuario(usr);
             solicitud.setCarga(CargaA);
+            solicitud.setVe(ve);
             solicitud.setEstado("P");
 
             try {
@@ -650,37 +656,9 @@ public class CompetitorService {
     public Response VerViajes(ConductorDTO cond) {
         
         JSONObject rta = new JSONObject();
-        Conductor Cond = new Conductor();
-        Cond.setCorreo(cond.getCorreo());
-        Cond.setNombre(cond.getNombre());
-        Cond.setPass(cond.getPass());
-        Cond.setTelefono(cond.getTelefono());
-        long idV = cond.getIdvehiculo();
-        Query q = entityManager.createQuery("SELECT v FROM Vehiculos v WHERE v.id = :id");
-        q.setParameter("id", idV);
+        Query q = entityManager.createQuery("SELECT v FROM Vehiculos v WHERE v.conductor = :id");
         Vehiculos v = (Vehiculos) q.getSingleResult();
-
-        Cond.setVehiculo(v);
-
-        v.setConductor(Cond);
-
-        try {
-            entityManager.getTransaction().begin();
-            entityManager.persist(Cond);
-            entityManager.merge(v);
-            entityManager.getTransaction().commit();
-            entityManager.refresh(Cond);
-            rta.put("Conductor_id", Cond.getId());
-        } catch (Throwable t) {
-            t.printStackTrace();
-            if (entityManager.getTransaction().isActive()) {
-                entityManager.getTransaction().rollback();
-            }
-            Cond = null;
-        } finally {
-            entityManager.clear();
-            entityManager.close();
-        }
+        
         return Response.status(200).header("Access-Control-Allow-Origin", "*").entity(rta).build();
     }
 }

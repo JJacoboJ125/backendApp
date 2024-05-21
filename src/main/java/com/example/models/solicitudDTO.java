@@ -5,26 +5,29 @@
  */
 package com.example.models;
 
+import javax.persistence.JoinColumn;
+import javax.persistence.ManyToOne;
+
 /**
  *
  * @author USER
  */
 public class solicitudDTO {
-    private Long id;
 
     private String estado; 
+    
+    private long idVe;
 
     
     public solicitudDTO() {
     }
 
-    
-    public Long getId() {
-        return id;
+    public long getIdVe() {
+        return idVe;
     }
 
-    public void setId(Long id) {
-        this.id = id;
+    public void setIdVe(long idVe) {
+        this.idVe = idVe;
     }
 
     public String getEstado() {

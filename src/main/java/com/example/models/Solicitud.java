@@ -11,6 +11,7 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
+import javax.persistence.OneToOne;
 
 /**
  *
@@ -29,6 +30,10 @@ public class Solicitud {
     @ManyToOne
     @JoinColumn(name = "carga_id")
     private Cargas carga;
+    
+    @OneToOne
+    @JoinColumn(name = "Vehiculo_id")
+    private Vehiculos ve;
 
     private String estado; 
 
@@ -73,6 +78,14 @@ public class Solicitud {
 
     public void setEstado(String estado) {
         this.estado = estado;
+    }
+
+    public Vehiculos getVe() {
+        return ve;
+    }
+
+    public void setVe(Vehiculos ve) {
+        this.ve = ve;
     }
     
     
